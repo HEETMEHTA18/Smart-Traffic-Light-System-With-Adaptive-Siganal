@@ -13,6 +13,14 @@
       background-color: #f0f0f0;
       margin: 0;
       padding: 20px;
+      color: #333;
+      line-height: 1.6;
+      font-size: 16px;  
+      overflow-x: hidden;
+      overflow-y: auto;
+      height: 100vh;
+      box-sizing: border-box;
+      background-image: linear-gradient(to right, #000000, #675a5a);
     }
     
     .container {
@@ -77,13 +85,17 @@
       margin: 20px 0;
     }
     
-    .traffic-light {
+    .traffic-light
+     {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       background-color: #333;
       width: 80px;
       height: 240px;
       border-radius: 10px;
       padding: 10px;
-      display: flex;
+
       flex-direction: column;
       justify-content: space-between;
       align-items: center;
