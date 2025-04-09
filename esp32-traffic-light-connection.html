@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP32 Connected Smart Traffic Light System</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #f0f0f0;
+      margin: 0;
+      padding: 20px;
+    }
+    
+    .container {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-width: 900px;
+      gap: 20px;
+    }
+    
+    .header {
+      background-color: #333;
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .connection-panel {
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .connection-status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    
+    .status-indicator {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background-color: #ff3b30;
+    }
+    
+    .status-indicator.connected {
+      background-color: #34c759;
+    }
+    
+    .connection-form {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    
+    .connection-form input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    
+    .intersection-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: 1fr 1fr 1fr;
+      gap: 10px;
+      margin: 20px 0;
+    }
+    
+    .traffic-light {
+      background-color: #333;
+      width: 80px;
+      height: 240px;
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      margin: 0 auto;
+    }
+    
+    .light {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background-color: #555;
+      margin: 5px 0;
+    }
+    
+    .red { background-color: #555; }
+    .yellow { background-color: #555; }
+    .green { background-color: #555; }
+    
+    .active-red { background-color: #ff3b30; box-shadow: 0 0 20px #ff3b30; }
+    .active-yellow { background-color: #ffcc00; box-shadow: 0 0 20px #ffcc00; }
+    .active-green { background-color: #34c759; box-shadow: 0 0 20px #34c759; }
+    
+    .lane1 { grid-column: 2; grid-row: 1; }
+    .lane2 { grid-column: 3; grid-row: 2; }
+    .lane3 { grid-column: 2; grid-row: 3; }
+    .lane4 { grid-column: 1; grid-row: 2; }
+    
+    .intersection-center {
+      grid-column: 2;
+      grid-row: 2;
+      background-color: #777;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+    }
+    
+    .lane {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .lane-label {
+      font-weight: bold;
+    }
+    
+    .sensor {
+      width: 30px;
+      height: 15px;
+      background-color: #333;
+      border-radius: 3px;
+      position: relative;
+    }
+    
+    .sensor.active {
+      background-color: #ff3b30;
+    }
+    
+    .sensor::after {
+      content: 'IR';
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      color: #333;
+    }
+    
+    .control-panel {
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .status-message {
+      font-size: 18px;
+      font-weight: bold;
+      margin: 10px 0;
+      text-align: center;
+    }
+    
+    .timer-display {
+      font-size: 24px;
+      margin: 15px 0;
+      font-weight: bold;
+    }
+    
+    button {
+      background-color: #0078d7;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    
+    button:hover {
+      background-color: #005a9e;
+    }
+    
+    .lane-status {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    .lane-card {
+      background-color: white;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .lane-card.active {
+      border: 2px solid #34c759;
+    }
+    
+    .lane-number {
+      font-weight: bold;
+      font-size: 18px;
+    }
+    
+    .lane-time {
+      font-size: 16px;
+      margin: 5px 0;
+    }
+    
+    .lane-density {
+      font-size: 14px;
+    }
+    
+    .density-label {
+      background-color: #e0e0e0;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+    
+    .density-high {
+      background-color: #ff3b30;
+      color: white;
+    }
+    
+    .density-medium {
+      background-color: #ffcc00;
+    }
+    
+    .density-low {
+      background-color: #34c759;
+      color: white;
+    }
+    
+    .density-none {
+      background-color: #e0e0e0;
+    }
+    
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    .metric {
+      text-align: center;
+      background-color: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .metric-value {
+      font-size: 24px;
+      font-weight: bold;
+    }
+    
+    .esp32-code {
+      background-color: #1e1e1e;
+      color: #d4d4d4;
+      font-family: "Consolas", monospace;
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 20px;
+      white-space: pre-wrap;
+      line-height: 1.5;
+      max-height: 300px;
+      overflow-y: auto;
+      font-size: 14px;
+    }
+    
+    .code-title {
+      font-weight: bold;
+      margin-top: 20px;
+      margin-bottom: 10px;
+    }
+    
+    .log-container {
+      background-color: #1e1e1e;
+      color: #d4d4d4;
+      font-family: "Consolas", monospace;
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 20px;
+      height: 150px;
+      overflow-y: auto;
+      font-size: 14px;
+    }
+    
+    .log-entry {
+      margin: 5px 0;
+      border-bottom: 1px solid #333;
+      padding-bottom: 5px;
+    }
+    
+    .log-entry.incoming {
+      color: #4ec9b0;
+    }
+    
+    .log-entry.outgoing {
+      color: #9cdcfe;
+    }
+    
+    .log-entry.error {
+      color: #f14c4c;
+    }
+    
+    .log-entry.system {
+      color: #dcdcaa;
+    }
+    
+    .config-section {
+      margin-top: 20px;
+    }
+    
+    .config-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 10px 0;
+    }
+    
+    .config-option label {
+      min-width: 100px;
+    }
+    
+    .config-option input {
+      padding: 5px;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+      width: 80px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>ESP32 Connected Smart Traffic Light System</h1>
+      <p>Real-time IR sensor monitoring with traffic management</p>
+    </div>
+    
+    <!-- ESP32 Connection Section -->
+    <div class="connection-panel">
+      <h2>ESP32 Connection</h2>
+      <div class="connection-status">
+        <div class="status-indicator" id="connection-indicator"></div>
+        <span id="connection-status-text">Disconnected</span>
+      </div>
+      
+      <div class="connection-form">
+        <input type="text" id="ip-address" placeholder="ESP32 IP Address (e.g., 192.168.1.100)" value="192.168.1.100">
+        <input type="text" id="port" placeholder="Port (default: 81)" value="81">
+        <button id="connect-button" onclick="connectToESP32()">Connect</button>
+      </div>
+      
+      <div class="config-section">
+        <h3>Configuration</h3>
+        <div class="config-option">
+          <label for="update-interval">Update Interval:</label>
+          <input type="number" id="update-interval" min="100" max="5000" step="100" value="500">
+          <span>ms</span>
+        </div>
+        
+        <div class="config-option">
+          <label for="auto-reconnect">Auto Reconnect:</label>
+          <input type="checkbox" id="auto-reconnect" checked>
+        </div>
+        
+        <button onclick="sendConfigToESP32()">Apply Settings</button>
+      </div>
+    </div>
+    
+    <!-- Control Panel Section -->
+    <div class="control-panel">
+      <h2>System Status</h2>
+      <div class="status-message" id="status-message">System Ready</div>
+      <div class="timer-display" id="timer">Waiting for ESP32...</div>
+      
+      <div class="lane-status">
+        <div class="lane-card" id="lane1-card">
+          <div class="lane-number">Lane 1</div>
+          <div class="lane-time" id="lane1-time">Wait: --</div>
+          <div class="lane-density">
+            <span class="density-label" id="lane1-density">No Vehicles</span>
+          </div>
+        </div>
+        <div class="lane-card" id="lane2-card">
+          <div class="lane-number">Lane 2</div>
+          <div class="lane-time" id="lane2-time">Wait: --</div>
+          <div class="lane-density">
+            <span class="density-label" id="lane2-density">No Vehicles</span>
+          </div>
+        </div>
+        <div class="lane-card" id="lane3-card">
+          <div class="lane-number">Lane 3</div>
+          <div class="lane-time" id="lane3-time">Wait: --</div>
+          <div class="lane-density">
+            <span class="density-label" id="lane3-density">No Vehicles</span>
+          </div>
+        </div>
+        <div class="lane-card" id="lane4-card">
+          <div class="lane-number">Lane 4</div>
+          <div class="lane-time" id="lane4-time">Wait: --</div>
+          <div class="lane-density">
+            <span class="density-label" id="lane4-density">No Vehicles</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Traffic Light Intersection -->
+    <div class="intersection-layout">
+      <div class="lane lane1">
+        <div class="lane-label">Lane 1</div>
+        <div class="traffic-light">
+          <div class="light red" id="light1-red"></div>
+          <div class="light yellow" id="light1-yellow"></div>
+          <div class="light green" id="light1-green"></div>
+        </div>
+        <div class="sensor" id="sensor1"></div>
+      </div>
+      
+      <div class="lane lane2">
+        <div class="lane-label">Lane 2</div>
+        <div class="traffic-light">
+          <div class="light red" id="light2-red"></div>
+          <div class="light yellow" id="light2-yellow"></div>
+          <div class="light green" id="light2-green"></div>
+        </div>
+        <div class="sensor" id="sensor2"></div>
+      </div>
+      
+      <div class="lane lane3">
+        <div class="lane-label">Lane 3</div>
+        <div class="traffic-light">
+          <div class="light red" id="light3-red"></div>
+          <div class="light yellow" id="light3-yellow"></div>
+          <div class="light green" id="light3-green"></div>
+        </div>
+        <div class="sensor" id="sensor3"></div>
+      </div>
+      
+      <div class="lane lane4">
+        <div class="lane-label">Lane 4</div>
+        <div class="traffic-light">
+          <div class="light red" id="light4-red"></div>
+          <div class="light yellow" id="light4-yellow"></div>
+          <div class="light green" id="light4-green"></div>
+        </div>
+        <div class="sensor" id="sensor4"></div>
+      </div>
+      
+      <div class="intersection-center">
+        Intersection
+      </div>
+    </div>
+    
+    <!-- System Metrics -->
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-value" id="total-vehicles">0</div>
+        <div class="metric-label">Total Vehicles</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value" id="avg-wait-time">0s</div>
+        <div class="metric-label">Average Wait Time</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value" id="cycles-completed">0</div>
+        <div class="metric-label">Cycles Completed</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value" id="system-uptime">0m</div>
+        <div class="metric-label">System Uptime</div>
+      </div>
+    </div>
+    
+    <!-- Communication Log -->
+    <div class="control-panel">
+      <h2>Communication Log</h2>
+      <div class="log-container" id="log-container">
+        <div class="log-entry system">System initialized. Waiting for connection...</div>
+      </div>
+    </div>
+    
+    <!-- ESP32 Code Section -->
+    <div class="control-panel">
+      <h2>ESP32 WebSocket Server Code</h2>
+      <p>This is the code you need to upload to your ESP32 to enable WebSocket communication with this interface.</p>
+      <div class="code-title">ESP32 Arduino Code:</div>
+      <div class="esp32-code">
+#include <WiFi.h>
+#include <WebSocketsServer.h>
+#include <ArduinoJson.h>
+
+// WiFi settings
+const char* ssid = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
+
+// WebSocket server
+WebSocketsServer webSocket = WebSocketsServer(81);
+
+// Lane pin definitions
+#define IR1 32  // Lane 1 IR Sensor
+#define IR2 33  // Lane 2 IR Sensor
+#define IR3 34  // Lane 3 IR Sensor
+#define IR4 35  // Lane 4 IR Sensor
+
+// Lane 1 Traffic Lights
+#define RED1 25
+#define YELLOW1 26
+#define GREEN1 27
+
+// Lane 2 Traffic Lights
+#define RED2 14
+#define YELLOW2 12
+#define GREEN2 13
+
+// Lane 3 Traffic Lights
+#define RED3 4
+#define YELLOW3 2
+#define GREEN3 15
+  
+// Lane 4 Traffic Lights
+#define RED4 21
+#define YELLOW4 19
+#define GREEN4 18
+
+// Traffic light state variables
+int currentLane = 0;
+unsigned long greenTime = 0;
+unsigned long startTime = 0;
+int density[4] = {0, 0, 0, 0};
+int laneQueue[4] = {0, 0, 0, 0};
+int queueIndex = 0;
+unsigned long lastUpdateTime = 0;
+int updateInterval = 500; // Update clients every 500ms
+
+// System metrics
+unsigned long systemStartTime = 0;
+int totalVehicles = 0;
+int cyclesCompleted = 0;
+int totalWaitTime = 0;
+
+void setup() {
+  Serial.begin(115200);
+  
+  // Initialize pins
+  pinMode(IR1, INPUT);
+  pinMode(IR2, INPUT);
+  pinMode(IR3, INPUT);
+  pinMode(IR4, INPUT);
+
+  pinMode(RED1, OUTPUT); pinMode(YELLOW1, OUTPUT); pinMode(GREEN1, OUTPUT);
+  pinMode(RED2, OUTPUT); pinMode(YELLOW2, OUTPUT); pinMode(GREEN2, OUTPUT);
+  pinMode(RED3, OUTPUT); pinMode(YELLOW3, OUTPUT); pinMode(GREEN3, OUTPUT);
+  pinMode(RED4, OUTPUT); pinMode(YELLOW4, OUTPUT); pinMode(GREEN4, OUTPUT);
+
+  // Set all traffic lights to red
+  allRed();
+  
+  // Connect to WiFi
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println();
+  Serial.print("Connected! IP address: ");
+  Serial.println(WiFi.localIP());
+  
+  // Start WebSocket server
+  webSocket.begin();
+  webSocket.onEvent(webSocketEvent);
+  Serial.println("WebSocket server started");
+  
+  // Initialize system start time
+  systemStartTime = millis();
+}
+
+void loop() {
+  webSocket.loop();
+  
+  // Read IR sensors
+  updateDensity();
+  
+  // Send updates to clients periodically
+  if (millis() - lastUpdateTime > updateInterval) {
+    sendStatusUpdate();
+    lastUpdateTime = millis();
+  }
+  
+  // Main traffic light control logic (same as your original)
+  // Note: This runs continuously alongside the WebSocket communication
+  if (queueIndex == 0) {
+    // When we're ready to start a new cycle
+    generateLaneQueue();
+    cyclesCompleted++;
+  }
+  
+  // Process the current lane in the queue
+  if (millis() - startTime > greenTime) {
+    processNextLane();
+  }
+}
+
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
+  switch(type) {
+    case WStype_DISCONNECTED:
+      Serial.printf("[%u] Disconnected!\n", num);
+      break;
+    
+    case WStype_CONNECTED:
+      {
+        IPAddress ip = webSocket.remoteIP(num);
+        Serial.printf("[%u] Connected from %d.%d.%d.%d\n", num, ip[0], ip[1], ip[2], ip[3]);
+        
+        // Send current status to newly connected client
+        sendStatusUpdate();
+      }
+      break;
+    
+    case WStype_TEXT:
+      {
+        // Convert payload to string
+        String message = String((char*)payload);
+        Serial.printf("[%u] Received: %s\n", num, message.c_str());
+        
+        // Parse JSON message
+        DynamicJsonDocument doc(1024);
+        DeserializationError error = deserializeJson(doc, message);
+        
+        if (error) {
+          Serial.print("deserializeJson() failed: ");
+          Serial.println(error.c_str());
+          return;
+        }
+        
+        // Check for command type
+        String command = doc["command"];
+        
+        if (command == "config") {
+          // Update configuration settings
+          if (doc.containsKey("updateInterval")) {
+            updateInterval = doc["updateInterval"];
+          }
+          
+          // Send back confirmation
+          sendConfigConfirmation();
+        }
+      }
+      break;
+  }
+}
+
+void sendStatusUpdate() {
+  // Create JSON document
+  DynamicJsonDocument doc(1024);
+  
+  // Add current status
+  doc["type"] = "status";
+  doc["currentLane"] = currentLane;
+  doc["remainingTime"] = greenTime > 0 ? (greenTime - (millis() - startTime)) / 1000 : 0;
+  
+  // Add lane status
+  JsonArray lanes = doc.createNestedArray("lanes");
+  for (int i = 0; i < 4; i++) {
+    JsonObject lane = lanes.createNestedObject();
+    lane["id"] = i + 1;
+    lane["density"] = density[i];
+    
+    // Determine light status for this lane
+    if (i == currentLane - 1) {
+      // This is the current active lane
+      if (millis() - startTime < greenTime - 2000) {
+        lane["lightStatus"] = "green";
+      } else {
+        lane["lightStatus"] = "yellow";
+      }
+    } else {
+      lane["lightStatus"] = "red";
+    }
+  }
+  
+  // Add metrics
+  doc["totalVehicles"] = totalVehicles;
+  doc["cyclesCompleted"] = cyclesCompleted;
+  doc["systemUptime"] = (millis() - systemStartTime) / 60000;
+  doc["avgWaitTime"] = totalVehicles > 0 ? totalWaitTime / totalVehicles : 0;
+  
+  // Serialize to string
+  String jsonString;
+  serializeJson(doc, jsonString);
+  
+  // Send to all connected clients
+  webSocket.broadcastTXT(jsonString);
+}
+
+void sendConfigConfirmation() {
+  // Create JSON document
+  DynamicJsonDocument doc(256);
+  
+  // Add config values
+  doc["type"] = "configConfirmation";
+  doc["updateInterval"] = updateInterval;
+  
+  // Serialize to string
+  String jsonString;
+  serializeJson(doc, jsonString);
+  
+  // Send to all connected clients
+  webSocket.broadcastTXT(jsonString);
+}
+
+void updateDensity() {
+  // Read IR sensors
+  density[0] = digitalRead(IR1) == LOW ? 3 : 0;
+  density[1] = digitalRead(IR2) == LOW ? 2 : 0;
+  density[2] = digitalRead(IR3) == LOW ? 1 : 0;
+  density[3] = digitalRead(IR4) == LOW ? 1 : 0;
+}
+
+void generateLaneQueue() {
+  // Copy the density array to work with
+  int densityCopy[4];
+  for (int i = 0; i < 4; i++) {
+    densityCopy[i] = density[i];
+  }
+  
+  // Generate queue based on density
+  for (int i = 0; i < 4; i++) {
+    int minIndex = getMinDensityIndex(densityCopy);
+    laneQueue[i] = minIndex;
+    densityCopy[minIndex] = 100; // Mark as processed
+  }
+  
+  queueIndex = 0;
+}
+
+int getMinDensityIndex(int lanes[]) {
+  int min = lanes[0];
+  int index = 0;
+  for (int i = 1; i < 4; i++) {
+    if (lanes[i] < min) {
+      min = lanes[i];
+      index = i;
+    }
+  }
+  return index;
+}
+
+void processNextLane() {
+  // Set all to red first
+  allRed();
+  delay(500);
+  
+  // Get the next lane from the queue
+  int laneIndex = laneQueue[queueIndex];
+  currentLane = laneIndex + 1; // 1-based for display
+  
+  // Calculate green time based on density
+  if (density[laneIndex] == 0) greenTime = 4000;
+  else if (density[laneIndex] == 1) greenTime = 7000;
+  else if (density[laneIndex] == 2) greenTime = 10000;
+  else greenTime = 15000;
+  
+  // Calculate wait times for other lanes
+  for (int i = 0; i < 4; i++) {
+    if (i != laneIndex) {
+      int waitTime = greenTime / 1000 + 7; // Green + Yellow + Safety
+      totalWaitTime += waitTime;
+    }
+  }
+  
+  // Count vehicles
+  if (density[laneIndex] > 0) {
+    totalVehicles += density[laneIndex];
+  }
+  
+  // Turn on green for this lane
+  switch (laneIndex) {
+    case 0:
+      digitalWrite(RED1, LOW);
+      digitalWrite(GREEN1, HIGH);
+      break;
+    case 1:
+      digitalWrite(RED2, LOW);
+      digitalWrite(GREEN2, HIGH);
+      break;
+    case 2:
+      digitalWrite(RED3, LOW);
+      digitalWrite(GREEN3, HIGH);
+      break;
+    case 3:
+      digitalWrite(RED4, LOW);
+      digitalWrite(GREEN4, HIGH);
+      break;
+  }
+  
+  // Record start time
+  startTime = millis();
+  
+  // Move to next lane in queue
+  queueIndex = (queueIndex + 1) % 4;
+  
+  // Send status update immediately
+  sendStatusUpdate();
+}
+
+void allRed() {
+  digitalWrite(RED1, HIGH); digitalWrite(GREEN1, LOW); digitalWrite(YELLOW1, LOW);
+  digitalWrite(RED2, HIGH); digitalWrite(GREEN2, LOW); digitalWrite(YELLOW2, LOW);
+  digitalWrite(RED3, HIGH); digitalWrite(GREEN3, LOW); digitalWrite(YELLOW3, LOW);
+  digitalWrite(RED4, HIGH); digitalWrite(GREEN4, LOW); digitalWrite(YELLOW4, LOW);
+}
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // WebSocket connection
+    let websocket;
+    let isConnected = false;
+    let autoReconnect = true;
+    let reconnectInterval = 5000;
+    let reconnectAttempts = 0;
+    let reconnectTimer;
+    
+    // System state variables
+    let currentLane = 0;
+    let remainingTime = 0;
+    let density = [0, 0, 0, 0];
+    let lightStatus = ["red", "red", "red", "red"];
+    let cyclesCompleted = 0;
+    let totalVehicles = 0;
+    let avgWaitTime = 0;
+    let systemUptime = 0;
+    
+    // Initialize
+    function init() {
+      // Initialize all traffic lights to red
+      allRed();
+      
+      // Check if auto-reconnect is enabled
+      autoReconnect = document.getElementById("auto-reconnect").checked;
+      
+      // Add event listeners
+      document.getElementById("auto-reconnect").addEventListener("change", function() {
+        autoReconnect = this.checked;
+        logMessage("Auto reconnect " + (autoReconnect ? "enabled" : "disabled"), "system");
+      });
+    }
+    
+    // Connect to ESP32 WebSocket server
+    function connectToESP32() {
+      const ipAddress = document.getElementById("ip-address").value;
+      const port = document.getElementById("port").value;
+      
+      if (isConnected && websocket) {
+        websocket.close();
+        return;
+      }
+      
+      const wsUrl = `ws://${ipAddress}:${port}`;
+      
+      logMessage(`Connecting to ${wsUrl}...`, "system");
+      document.getElementById("status-message").textContent = "Connecting to ESP32...";
+      
+      try {
+        websocket = new WebSocket(wsUrl);
+        
+        websocket.onopen = function(evt) {
+          isConnected = true;
+          reconnectAttempts = 0;
+          
+          // Update UI
+          document.getElementById("connection-indicator").classList.add("connected");
+          document.getElementById("connection-status-text").textContent = "Connected";
+          document.getElementById("connect-button").textContent = "Disconnect";
+          document.getElementById("status-message").textContent = "Connected to ESP32";
+          
+          logMessage("Connected to ESP32", "system");
+        };
+        
+        websocket.onclose = function(evt) {
+          isConnected = false;
+          
+          // Update UI
+          document.getElementById("connection-indicator").classList.remove("connected");
+          document.getElementById("connection-status-text").textContent = "Disconnected";
+          document.getElementById("connect-button").textContent = "Connect";
+          document.getElementById("status-message").textContent = "Disconnected from ESP32";
+          
+          logMessage("Disconnected from ESP32", "system");
+          
+          // Try to reconnect if auto-reconnect is enabled
+          if (autoReconnect) {
+            reconnectAttempts++;
+            const delay = Math.min(30000, reconnectInterval * reconnectAttempts);
+            
+            logMessage(`Attempting to reconnect in ${delay/1000} seconds...`, "system");
+            
+            clearTimeout(reconnectTimer);
+            reconnectTimer = setTimeout(connectToESP32, delay);
+          }
+        };
+        
+        websocket.onmessage = function(evt)
